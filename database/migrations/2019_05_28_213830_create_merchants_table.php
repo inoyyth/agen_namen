@@ -21,6 +21,8 @@ class CreateMerchantsTable extends Migration
             $table->string('phone', 20);
             $table->text('longitude')->nullable();
             $table->text('latitude')->nullable();
+            $table->string('image')->nullable();
+            $table->text('description')->nullable();
             $table->timestamps();
             $table->softDeletes();
             $table->foreign('user_id')

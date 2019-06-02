@@ -21,6 +21,7 @@ class CreateUsersTable extends Migration
             $table->string('otp_code', 6);
             $table->string('password');
             $table->rememberToken();
+            $table->tinyInteger('type')->default(1)->comment('1=>user, 2=>merchant, 3=>admin');
             $table->timestamps();
         });
     }

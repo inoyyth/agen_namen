@@ -8,9 +8,11 @@ use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 use Validator;
 use Hash;
+use JD\Cloudder\Facades\Cloudder;
 use App\UserDetails;
 use App\User;
 use App\Http\Requests\UserRegister;
+use App\Http\Requests\ChangeProfile;
 
 class UserController extends Controller 
 {
@@ -25,7 +27,7 @@ class UserController extends Controller
      */ 
     public function login() 
     { 
-        if(Auth::attempt(['email' => request('email'), 'password' => request('password')])){ 
+        if(Auth::attempt(['email' => request('email'), 'password' => request('password'), 'type' => 1])){ 
             $user = Auth::user();
             if($user->otp_verified_at) {
                 $success['data'] = $user;
@@ -60,24 +62,31 @@ class UserController extends Controller
             return response()->json(['error'=>$e->getMessage()], 500); 
          }
         
-        return response()->json(['status'=>'success'], self::SUCCESS_CODE); 
+        return response()->json(['status'=>'success', 'data' => ['email' => $user->email]], 201); 
     }
 
-    public function registerActivation(Request $request) {
+    public function userActivation(Request $request) {
+        $validator = Validator::make(request()->all(), [
+            'email' => 'required|email',
+            'otp_code' => 'required|numeric'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
         try {
             $today = Carbon::now();
-            $is_user = User::where('id', Crypt::decrypt($request->key))->first();
+            $is_user = User::where('otp_code', $request->otp_code)
+                        ->where('email', $request->email)
+                        ->where('otp_verified_at', NULL)->first();
             if($is_user) {
-                $register_date = Carbon::parse($is_user->created_at);
-                $expired_date = $register_date->addDays(self::LIMIT_DATE_REGISTRATION);
-                
-                if ($expired_date > $today && $is_user->email_verified_at == NULL) {
-                    $activate_user = User::where('id', $is_user->id)
-                                    ->update(['email_verified_at' => $today->format('Y-m-d h:i:s')]);
-                    if ($activate_user) {
-                        return response()->json(['status'=>'success'], self::SUCCESS_CODE);
-                    }
+                $activate_user = User::where('id', $is_user->id)
+                                 ->update(['otp_verified_at' => $today->format('Y-m-d h:i:s')]);
+                if ($activate_user) {
+                    return response()->json(['status'=>'success'], self::SUCCESS_CODE);
                 }
+                
             }
         } catch(\Exception $e){
             return response()->json(['error'=>$e->getMessage()], 500);
@@ -162,7 +171,7 @@ class UserController extends Controller
 
         try {
             $user =  User::where('email', $request->email)->first();
-            if ($user != null && $user->email_verified_at != null) {
+            if ($user != null && $user->otp_verified_at != null) {
                 $update = User::where('email', $request->email)
                     ->update(['password' => bcrypt($request->password)]);
 
@@ -185,7 +194,7 @@ class UserController extends Controller
             if ($request->hasFile('profile_image')) {
                 $image = $request->file('profile_image');
                 $img_name = time();
-                Cloudder::upload($image, $img_name,['folder'=>'plis/user']);
+                Cloudder::upload($image, $img_name,['folder'=>'agen_namen/user']);
                 $image_url = Cloudder::getResult();
             }
             $change_user = [
@@ -194,8 +203,7 @@ class UserController extends Controller
             User::where('id', $user->id)->update($change_user);
 
             $change_detail_user = [
-                'area_id' => $request->district,
-                'handphone' => $request->handphone,
+                'birth_date' => $request->birth_date,
                 'phone' => $request->phone,
                 'gender' => $request->gender,
                 'address' => $request->address,
@@ -217,18 +225,18 @@ class UserController extends Controller
             $user = Auth::user();
             $user_detail = UserDetails::where('user_id', $user->id)->first();
             if ($user_detail) {
-                $user_area = $this->__getAreaDetail($user_detail->area_id);
-
+                $image = Cloudder::show($user_detail->profile_image,
+                            array('width' => 300, 'height' => 300)
+                            );
                 $data = [
                     'email' => $user->email,
                     'name' => $user->name,
-                    'area' => $user_area,
-                    'handphone' => $user_detail->hanphone,
+                    'register_date' => $user->created_at,
+                    'birth_date' => $user_detail->birth_date,
                     'phone' => $user_detail->phone,
                     'gender' => $user_detail->gender == 0 ? 'female' : 'male',
                     'address' => $user_detail->address,
-                    'profile_image' => $user_detail->profile_image,
-                    'register_date' => $user->created_at
+                    'profile_image' => $image,
                 ];
 
                 return response()->json(['status'=>'success','data'=>$data], 201);
