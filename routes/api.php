@@ -41,3 +41,15 @@ Route::group(['prefix' => 'merchant', 'as' => 'merchant'], function() {
         Route::post('profile', ['as' => 'merchant-change-profile', 'uses' => 'Api\MerchantController@changeProfile']);
     });
 });
+
+Route::group(['prefix' => 'category', 'as' => 'category'], function() {
+    Route::group(['middleware' => 'auth:api'], function() {
+        Route::get('/', ['as' => 'category', 'uses' => 'Api\CategoryController@index']);
+    });
+});
+
+Route::group(['prefix' => 'products', 'as' => 'products'], function() {
+    Route::group(['middleware' => 'auth:api'], function() {
+        Route::get('/', ['as' => 'product', 'uses' => 'Api\ProductController@index']);
+    });
+});
