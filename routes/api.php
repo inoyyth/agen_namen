@@ -17,13 +17,13 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('login', ['as' => 'login', 'uses' => 'Api\UserController@login']);
-Route::post('register',['as' => 'register', 'uses' => 'Api\UserController@register']);
-Route::post('user-activation', ['as' => 'user-activation', 'uses' => 'Api\UserController@userActivation']);
-Route::post('forgot-password', ['as' => 'forgot-password', 'uses' => 'Api\UserController@userActivation']);
 
-Route::group(['middleware' => 'auth:api'], function() {
-    Route::group(['prefix' => 'user', 'as' => 'user'], function() {
+Route::group(['prefix' => 'user', 'as' => 'user'], function() {
+    Route::post('login', ['as' => 'login', 'uses' => 'Api\UserController@login']);
+    Route::post('register',['as' => 'register', 'uses' => 'Api\UserController@register']);
+    Route::post('user-activation', ['as' => 'user-activation', 'uses' => 'Api\UserController@userActivation']);
+    Route::post('forgot-password', ['as' => 'forgot-password', 'uses' => 'Api\UserController@userActivation']);
+    Route::group(['middleware' => 'auth:api'], function() {
         Route::post('change-password', ['as' => 'change-password', 'uses' => 'Api\UserController@changePassword']);
         Route::get('profile', ['as' => 'get-profile', 'uses' => 'Api\UserController@getProfile']);
         Route::post('profile', ['as' => 'change-profile', 'uses' => 'Api\UserController@changeProfile']);

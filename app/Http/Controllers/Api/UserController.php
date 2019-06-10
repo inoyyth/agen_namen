@@ -27,13 +27,19 @@ class UserController extends Controller
      */ 
     public function login() 
     { 
-        if(Auth::attempt(['email' => request('email'), 'password' => request('password'), 'type' => 1])){ 
-            $user = Auth::user();
-            if($user->otp_verified_at) {
-                $success['data'] = $user;
-                $success['data']['token'] =  $user->createToken('MyApp')-> accessToken; 
-                return response()->json(['status' => 'success','data' => $success], self::SUCCESS_CODE); 
+        try{
+            if(Auth::attempt(['email' => request('email'), 'password' => request('password'), 'type' => 1])){ 
+                $user = Auth::user();
+                if($user->otp_verified_at) {
+                    $success['data'] = $user;
+                    $success['data']['token'] =  $user->createToken('MyApp')-> accessToken; 
+                    return response()->json(['status' => 'success','data' => $success], self::SUCCESS_CODE); 
+                }
             }
+        }
+        catch(\Exception $e){
+           // do task when error
+           return response()->json(['error'=>$e->getMessage()], 500); 
         }
         
         return response()->json(['error'=>'Unauthorised'], 401); 
